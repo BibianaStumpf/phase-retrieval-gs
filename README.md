@@ -8,9 +8,9 @@
 
 En optique, un champ électromagnétique est une grandeur complexe :
 
-$$E(r) = A(r)\,e^{i\phi(r)}$$
+$$E(r) = A(r)e^{i\phi(r)}$$
 
-Les capteurs (CCD, CMOS…) ne mesurent que l'**intensité** :
+Les capteurs (CCD, CMOS…) ne mesurent que l'intensité :
 
 $$I(r) = |E(r)|^2$$
 
@@ -80,19 +80,6 @@ rms = rmse_phase(phase_reelle, phase_estimee, masque=amplitude > 0)
 
 ---
 
-## Exemples de résultats
-
-### Phase initiale nulle vs. aléatoire
-![convergence](results/figures/01_convergence_init.png)
-
-### Phase gaussienne — profil radial
-![gaussienne](results/figures/03_gaussienne_centree_reconstruction.png)
-
-### Ambiguïtés fondamentales
-![ambiguites](results/figures/07_ambiguites.png)
-
----
-
 ## Limites identifiées
 
 | Phénomène | Origine | Contournable ? |
@@ -128,4 +115,4 @@ rms = rmse_phase(phase_reelle, phase_estimee, masque=amplitude > 0)
 **Bibiana Terres Stumpf**  
 Double diplôme — Ingénierie Généraliste (École Centrale Méditerranée) & Ingénierie Physique (UFRGS)
 
-*Projet réalisé dans le cadre du cours d'optique — École Centrale Méditerranée, 2024*
+*Projet réalisé dans le cadre du cours d'optique avec ALSENE Adrien, LEMONSU Hugo, DOMMELIER Maylis et STEFANOVIC Katarina -— École Centrale Méditerranée, 2025*
