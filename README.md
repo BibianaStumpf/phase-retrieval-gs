@@ -3,7 +3,6 @@
 > Simulation numérique de la récupération de phase en optique par l'algorithme itératif de Gerchberg–Saxton.
 
 ---
-
 ## Contexte physique
 
 En optique, un champ électromagnétique est une grandeur complexe :
