@@ -3,26 +3,25 @@
 > Simulation numérique de la récupération de phase en optique par l'algorithme itératif de Gerchberg–Saxton.
 
 ---
+
 ## Contexte physique
 
 En optique, un champ électromagnétique est une grandeur complexe :
 
 $$E(r) = A(r)\,e^{i\phi(r)}$$
 
-où $A(r)$ est l'amplitude (liée à l'intensité) et $\phi(r)$ la phase (liée au déphasage du front d'onde). Les capteurs optiques (CCD, CMOS…) ne mesurent que l'**intensité** :
+Les capteurs (CCD, CMOS…) ne mesurent que l'**intensité** :
 
 $$I(r) = |E(r)|^2$$
 
-Cette mesure entraîne une **perte totale d'information sur la phase**, rendant impossible la reconstruction directe du champ incident. C'est le **problème de récupération de phase**, fondamental en astronomie, cristallographie, microscopie et profilométrie.
+Cette mesure entraîne une **perte totale d'information sur la phase**. C'est le **problème de récupération de phase**, fondamental en astronomie, cristallographie, microscopie et profilométrie.
 
 ---
 
 ## Algorithme de Gerchberg–Saxton
 
-L'algorithme G–S est une méthode itérative qui alterne entre le plan objet et le plan de Fourier, en imposant à chaque étape les contraintes physiques connues :
-
 ```
-x₀ = |f| · exp(iφ₀)          ← initialisation (phase aléatoire ou nulle)
+x₀ = |f| · exp(iφ₀)          ← initialisation (phase nulle ou aléatoire)
   ↓  FFT
 Xₖ = F(xₖ)
   ↓  contrainte Fourier
@@ -35,59 +34,82 @@ xₖ₊₁ = |f| · exp(iφₖ)        ← amplitude connue, phase estimée cons
 
 ---
 
-## Contenu du dépôt
+## Structure du dépôt
 
 ```
 phase-retrieval-GS/
-├── gerchberg_saxton.ipynb   # Notebook principal (implémentation + expériences)
-└── README.md
+├── README.md
+├── notebooks/
+│   └── gerchberg_saxton.ipynb   ← notebook principal
+├── src/
+│   └── gs_algorithm.py          ← fonctions réutilisables
+└── results/
+    └── figures/                 ← figures générées automatiquement
 ```
 
 ---
 
-## Expériences réalisées
+## Contenu du notebook
 
-### 1. Phases discontinues
+| Section | Description |
+|---------|-------------|
+| 0. Configuration | Imports, paramètres globaux, création du dossier `results/figures/` |
+| 1. Objet de référence | Disque binaire avec deux zones de phase |
+| 2. Phase initiale | Comparaison convergence : phase nulle vs. aléatoire |
+| 3. Phases discontinues | Sauts croissants, ambiguïté mod 2π |
+| 4. Phase gaussienne | Profil radial continu — cas plus réaliste |
+| 5. Rampe de phase | Onde plane inclinée, décalage dans le plan de Fourier |
+| 6. Tableau de synthèse | Pearson r et RMSE pour tous les cas |
+| 7. Analyse des limites | Illustrations des 6 limites fondamentales |
+| 8. Conclusion | Comparaison avec HIO, DPR/MPR |
 
-L'objet est un disque de 120×120 pixels avec deux zones de phase distinctes (anneau et centre). On augmente progressivement le saut de phase pour caractériser les limites de l'algorithme.
+---
 
-| Cas | Phase anneau | Phase centre | Saut total | Résultat |
-|-----|-------------|-------------|------------|---------|
-| 1 | 0 | 0 | 0 | Reconstruction parfaite |
-| 2 | π/2 | −π/2 | π | Structure correctement retrouvée |
-| 3 | π | −π/2 | 3π/2 | Début de dégradation |
-| 4 | 7π/4 | 7π/4 | — | Ambiguïté mod 2π illustrée |
+## Métriques de qualité
 
-### 2. Rampe de phase (onde plane inclinée)
+Deux métriques sont calculées automatiquement pour chaque reconstruction, **uniquement dans le masque** (zone d'amplitude non nulle) :
 
-Une onde plane inclinée de vecteur $(k_x, k_y)$ introduit une rampe de phase spatiale. On vérifie que cela décale le pic d'intensité dans le plan de Fourier, et on teste la capacité de reconstruction de l'algorithme.
+- **Corrélation de Pearson** $r$ : mesure la ressemblance structurelle entre phase réelle et estimée (1 = parfait)
+- **RMSE** (rad) : erreur quadratique moyenne de phase après alignement global
 
-| Cas | $k_x$ | $k_y$ | Résultat |
-|-----|--------|--------|---------|
-| Référence | 0 | 0 | Phase uniforme |
-| Rampe horizontale | 0.1 | 0 | Bandes verticales reconstruites |
-| Rampe diagonale | 0.3 | 0.3 | Décalage diagonal confirmé |
-| Rampe + discontinuité | 1.0 | 0.5 | Aliasing + stagnation |
+```python
+from src.gs_algorithm import pearson_phase, rmse_phase
+r   = pearson_phase(phase_reelle, phase_estimee, masque=amplitude > 0)
+rms = rmse_phase(phase_reelle, phase_estimee, masque=amplitude > 0)
+```
+
+---
+
+## Exemples de résultats
+
+### Phase initiale nulle vs. aléatoire
+![convergence](results/figures/01_convergence_init.png)
+
+### Phase gaussienne — profil radial
+![gaussienne](results/figures/03_gaussienne_centree_reconstruction.png)
+
+### Ambiguïtés fondamentales
+![ambiguites](results/figures/07_ambiguites.png)
 
 ---
 
 ## Limites identifiées
 
-| Phénomène | Origine |
-|-----------|---------|
-| Bruit dans les zones d'amplitude nulle | Limite numérique (arg de nombres ≈ 0) |
-| Ambiguïté modulo 2π | Invariance de l'intensité |
-| Perte de phase absolue | Invariance par translation de phase globale |
-| Stagnation (minima locaux) | Nature non-convexe du problème |
-| Repliement de phase (aliasing) | Variation > π entre pixels adjacents |
-| Vortex de phase | Singularité physique (phase indéfinie si amplitude = 0) |
+| Phénomène | Origine | Contournable ? |
+|-----------|---------|---------------|
+| Bruit dans les zones nulles | Limite numérique (arg ≈ 0) | Oui — masque |
+| Ambiguïté mod 2π | Invariance de l'intensité | Non (physique) |
+| Perte de phase absolue | Invariance par translation globale | Non (physique) |
+| Stagnation (minima locaux) | Problème non-convexe | Partiellement — HIO |
+| Repliement de phase (aliasing) | Variation > π entre pixels | Partiellement — sur-échantillonnage |
+| Vortex de phase | Singularité (amplitude = 0) | Non (physique) |
 
 ---
 
 ## Technologies
 
 - **Python** · NumPy · Matplotlib
-- **Transformée de Fourier rapide (FFT)** : `numpy.fft`
+- **FFT** : `numpy.fft`
 - Environnement : Google Colab / Jupyter Notebook
 
 ---
@@ -106,4 +128,4 @@ Une onde plane inclinée de vecteur $(k_x, k_y)$ introduit une rampe de phase sp
 **Bibiana Terres Stumpf**  
 Double diplôme — Ingénierie Généraliste (École Centrale Méditerranée) & Ingénierie Physique (UFRGS)
 
-*Projet réalisé dans le cadre du cours d'optique — École Centrale Méditerranée, 2025*
+*Projet réalisé dans le cadre du cours d'optique — École Centrale Méditerranée, 2024*
